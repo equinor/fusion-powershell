@@ -57,7 +57,7 @@ function Get-IntegrationTestDatabase {
         return
     }
 
-    function Download-Blob($blobPath) {
+    function Get-Blob($blobPath) {
         $dlPath = [System.IO.Path]::GetFileName($blobPath)
 
         $blob = Get-AzureStorageBlobContent -Container $INGT_CONTAINER -Blob $blobPath -Context $ctx.Context -Destination $dlPath -Force -ErrorAction SilentlyContinue
@@ -77,13 +77,13 @@ function Get-IntegrationTestDatabase {
 
         foreach ($blob in $blobs) {
             Write-Host "Downloading $($blob.Name)..."
-            Download-Blob -blobPath $blob.Name
+            Get-Blob -blobPath $blob.Name
         }
     } else {                
         $filename = [System.IO.Path]::GetFileNameWithoutExtension($Mdf)
         $blobPath = "$DB_PREFIX/$filename.zip"
 
-        Download-Blob -blobPath $blobPath
+        Get-Blob -blobPath $blobPath
     }
 }
 
