@@ -1,0 +1,92 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "env": {
+      "type": "string",
+      "metadata": {
+        "description": "The environment name to deploy the function app to"
+      }
+    },
+    "appName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the function app that you wish to create."
+      }
+    },
+    "hostingPlanName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the app service plan to deploy the web-/function app to"
+      }
+    },
+    "settings": {
+      "type": "object",
+      "metadata": {
+        "description": "Items to put in app settings."
+      }
+    },
+    "app_insight_key": {
+      "type": "string",
+      "metadata": {
+        "description": "The application insight instance the web app should be tied up against."
+      }
+    }
+  },
+  "variables": {
+    "site_portal_name": "[parameters('appName')]",
+    "slot_name": "[parameters('settings').pull_request_nr]"
+  },
+  "resources": [
+    {
+      "apiVersion": "2015-08-01",
+      "name": "[concat(variables('site_portal_name'), '/', variables('slot_name'))]",
+      "type": "Microsoft.Web/sites/slots",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+      ],
+      "properties": {
+        "httpsOnly": true
+      },
+      "resources": [
+        {
+          "apiVersion": "2015-08-01",
+          "name": "web",
+          "type": "config",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/Sites/Slots', variables('site_portal_name'), variables('slot_name'))]"
+          ],
+          "properties": {
+            "alwaysOn": true,
+            "webSocketsEnabled": true,
+            "phpVersion": "off",
+            "ftpsState": "FtpsOnly",
+            "minTlsVersion": "1.2"
+          }
+        },
+        {
+          "type": "config",
+          "name": "appsettings",
+          "apiVersion": "2015-08-01",
+          "properties": {
+            "WEBSITE_LOAD_CERTIFICATES": "*",
+            "APPINSIGHTS_INSTRUMENTATIONKEY": "[parameters('app_insight_key')]",
+            "APPINSIGHTS_PORTALINFO": "ASP.NETCORE",
+            "AzureAd:TenantId": "3aa4a235-b6e2-48d5-9195-7fcf05b459b0",
+            "AzureAd:ClientId": "[parameters('settings').client_id]",
+            "AzureAd:ApplicationProxy:Resource": "[parameters('settings').app_proxy_resource]",
+            "Config:CertThumbprint": "[parameters('settings').cert_thumbprint]",
+            "Config:Environment": "[parameters('env')]",
+            "Config:PullRequest": "[variables('slot_name')]",
+            "Config:BuildSource": "[parameters('settings').build_source]",
+            "KeyVaultUri": "[parameters('settings').key_vault]",
+            "KeyVaultUri-Shared": "https://proview-shared-secrets.vault.azure.net"
+          },
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/Sites/Slots', variables('site_portal_name'), variables('slot_name'))]"
+          ]
+        }
+      ]
+    }
+  ]
+}

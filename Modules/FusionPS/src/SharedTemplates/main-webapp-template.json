@@ -1,0 +1,182 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "env": {
+      "type": "string",
+      "metadata": {
+        "description": "The environment name to deploy the function app to"
+      }
+    },
+    "appName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the function app that you wish to create."
+      }
+    },
+    "hostingPlanName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the app service plan to deploy the web-/function app to"
+      }
+    },
+    "settings": {
+      "type": "object",
+      "metadata": {
+        "description": "Items to put in app settings."
+      }
+    },
+    "app_insight_key": {
+      "type": "string",
+      "metadata": {
+        "description": "The application insight instance the web app should be tied up against."
+      }
+    }
+  },
+  "variables": {
+    "webAppName": "[parameters('appName')]",
+    "slotName": "staging",
+    "hostingPlanName": "[parameters('hostingPlanName')]",
+    "location": "[resourceGroup().location]"
+  },
+  "resources": [
+    {
+      "apiVersion": "2015-04-01",
+      "kind": "app",
+      "type": "Microsoft.Web/sites",
+      "name": "[variables('webAppName')]",
+      "location": "[variables('location')]",
+      "properties": {
+        "name": "[variables('webAppName')]",
+        "serverFarmId": "[resourceId(resourceGroup().name, 'Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
+        "siteConfig": {
+          "alwaysOn": true,
+          "phpVersion": "off",
+          "ftpsState": "FtpsOnly",
+          "minTlsVersion": "1.2",
+          "webSocketsEnabled": false,
+          "appSettings": [
+            {
+              "name": "WEBSITE_LOAD_CERTIFICATES",
+              "value": "*"
+            },
+            {
+              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+              "value": "[parameters('app_insight_key')]"
+            },
+            {
+              "name": "APPINSIGHTS_PORTALINFO",
+              "value": "ASP.NETCORE"
+            },
+            {
+              "name": "AzureAd:TenantId",
+              "value": "3aa4a235-b6e2-48d5-9195-7fcf05b459b0"
+            },
+            {
+              "name": "AzureAd:ClientId",
+              "value": "[parameters('settings').client_id]"
+            },
+            {
+              "name": "AzureAd:ApplicationProxy:Resource",
+              "value": "[parameters('settings').app_proxy_resource]"
+            },
+            {
+              "name": "Config:CertThumbprint",
+              "value": "[parameters('settings').cert_thumbprint]"
+            },
+            {
+              "name": "Config:Environment",
+              "value": "[parameters('env')]"
+            },
+            {
+              "name": "Config:BuildSource",
+              "value": "[parameters('settings').build_source]"
+            },
+            {
+              "name": "KeyVaultUri",
+              "value": "[parameters('settings').key_vault]"
+            },
+            {
+              "name": "KeyVaultUri-Shared",
+              "value": "https://proview-shared-secrets.vault.azure.net"
+            }
+          ]
+        },
+        "httpsOnly":  true
+      },
+      "dependsOn": [
+      ],
+      "resources": [
+        {
+          "apiVersion": "2018-02-01",
+          "name": "Microsoft.ApplicationInsights.AzureWebSites",
+          "type": "siteextensions",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/Sites', variables('webAppName'))]"
+          ]
+        },
+        {
+          "apiVersion": "2018-02-01",
+          "name": "Microsoft.AspNetCore.AzureAppServices.SiteExtension",
+          "type": "siteextensions",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/Sites', variables('webAppName'))]",
+            "[resourceId('Microsoft.Web/sites/siteextensions', variables('webAppName'), 'Microsoft.ApplicationInsights.AzureWebSites')]"
+          ]
+        },
+        {
+          "apiVersion": "2015-08-01",
+          "name": "[variables('slotName')]",
+          "type": "slots",
+          "location": "[resourceGroup().location]",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/Sites', variables('webAppName'))]",
+            "[resourceId('Microsoft.Web/sites/siteextensions', variables('webAppName'), 'Microsoft.ApplicationInsights.AzureWebSites')]",
+            "[resourceId('Microsoft.Web/sites/siteextensions', variables('webAppName'), 'Microsoft.AspNetCore.AzureAppServices.SiteExtension')]"
+          ],
+          "properties": {
+            "httpsOnly": true
+          },
+          "resources": [
+            {
+              "apiVersion": "2018-02-01",
+              "name": "Microsoft.ApplicationInsights.AzureWebSites",
+              "type": "siteextensions",
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/Sites', variables('webAppName'))]",
+                "[resourceId('Microsoft.Web/Sites/Slots', variables('webAppName'), variables('slotName'))]"
+              ]
+            },
+            {
+              "apiVersion": "2018-02-01",
+              "name": "Microsoft.AspNetCore.AzureAppServices.SiteExtension",
+              "type": "siteextensions",
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/Sites', variables('webAppName'))]",
+                "[resourceId('Microsoft.Web/Sites/Slots', variables('webAppName'), variables('slotName'))]",
+                "[resourceId('Microsoft.Web/sites/slots/siteextensions', variables('webAppName'), variables('slotName'), 'Microsoft.ApplicationInsights.AzureWebSites')]"
+              ]
+            },
+            {
+              "apiVersion": "2015-08-01",
+              "name": "web",
+              "type": "config",
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/Sites/Slots', variables('webAppName'), variables('slotName'))]",
+                "[resourceId('Microsoft.Web/sites/slots/siteextensions', variables('webAppName'), variables('slotName'), 'Microsoft.ApplicationInsights.AzureWebSites')]",
+                "[resourceId('Microsoft.Web/sites/slots/siteextensions', variables('webAppName'), variables('slotName'), 'Microsoft.AspNetCore.AzureAppServices.SiteExtension')]"
+              ],
+              "properties": {
+                "alwaysOn": true,
+                "webSocketsEnabled": false,
+                "phpVersion": "off",
+                "ftpsState": "FtpsOnly",
+                "minTlsVersion": "1.2"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
