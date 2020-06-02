@@ -238,7 +238,7 @@ function New-DefaultWebAppDeployment {
     } 
 
     
-    if ($SlotName -ne $null) {
+    if (-not [string]::IsNullOrEmpty($SlotName)) {
         $defaultParams.settings.pull_request_nr = $SlotName
 
         $slotApp = $null
