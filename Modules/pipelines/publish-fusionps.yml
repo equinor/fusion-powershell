@@ -1,0 +1,46 @@
+
+trigger: none
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  publishPath: $(Build.ArtifactStagingDirectory)/publish
+
+steps:
+  - pwsh: ./Modules/publish-module.ps1 -Name FusionPS -PublishPath $(publishPath)
+    displayName: 'Generate PS Module .nupkg file'
+
+  - task: NuGetCommand@2
+    displayName: 'Publish FusionPS to Fusion-Public feed'
+    inputs:
+      command: 'push'
+      packagesToPush: '$(publishPath)/*.nupkg'
+      nuGetFeedType: 'internal'
+      publishVstsFeed: '5309109e-a734-4064-a84c-fbce45336913/c8fd9c75-70b5-424e-8372-890916f1de03'
+      allowPackageConflicts: true
+      verbosityPush: 'Normal'
+
+  - pwsh: |
+      $headers = @{ Authorization = "Bearer $($env:TOKEN)"}
+      $body = @{
+        "views" = @{
+          "op" = "add"
+          "path" = "/views/-" 
+          "value" = "Release"
+        }
+      }
+
+      $packages = Get-ChildItem -Path $(publishPath)
+      $packages | ForEach-Object {
+          if ($_.Name -match "(.+?)\.(\d+\.\d+\.\d+.*?)\.nupkg") {
+              $packageName = $Matches[1]
+              $versionString = $Matches[2]
+              $endpoint = "https://pkgs.dev.azure.com/statoil-proview/5309109e-a734-4064-a84c-fbce45336913/_apis/packaging/feeds/Fusion-Public/nuget/packages/$packageName/versions/$($versionString)?api-version=5.0-preview.1"
+              Write-Host "PATCH -> $endpoint"
+              Invoke-RestMethod -Headers $headers -Method PATCH -Uri $endpoint -Body (ConvertTo-Json $body) -ContentType "application/json"                    
+          }
+      }
+    displayName: 'Promote packages to release view'           
+    env:
+      TOKEN: $(System.AccessToken)   

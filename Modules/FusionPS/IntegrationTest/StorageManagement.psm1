@@ -60,7 +60,7 @@ function Get-IntegrationTestDatabase {
     function Get-Blob($blobPath) {
         $dlPath = [System.IO.Path]::GetFileName($blobPath)
 
-        $blob = Get-AzureStorageBlobContent -Container $INGT_CONTAINER -Blob $blobPath -Context $ctx.Context -Destination $dlPath -Force -ErrorAction SilentlyContinue
+        $blob = Get-AzStorageBlobContent -Container $INGT_CONTAINER -Blob $blobPath -Context $ctx.Context -Destination $dlPath -Force -ErrorAction SilentlyContinue
         if ($null -eq $blob) {
             throw "Could not download blob data from [$INGT_CONTAINER/$blobPath]"
         }
@@ -75,7 +75,7 @@ function Get-IntegrationTestDatabase {
     if ($All.IsPresent) {        
         [array]$blobs = Get-AzStorageBlob -Container $INGT_CONTAINER -Prefix $DB_PREFIX -Context $ctx.Context 
 
-        foreach ($blob in $blobs) {
+        foreach ($blob in $blobs | Where-Object -Property SnapshotTime -EQ $null) {
             Write-Host "Downloading $($blob.Name)..."
             Get-Blob -blobPath $blob.Name
         }
@@ -104,7 +104,9 @@ function Show-IntegrationTestDatabases {
     }
     else 
     {
-        Get-AzStorageBlob -Container $INGT_CONTAINER -Prefix $DB_PREFIX -Context $ctx.Context | Format-List -Property Name,Length,LastModified
+        Get-AzStorageBlob -Container $INGT_CONTAINER -Prefix $DB_PREFIX -Context $ctx.Context `
+            | Where-Object -Property SnapshotTime -EQ $null `
+            | Format-List -Property Name,Length,LastModified
     }
 }
 

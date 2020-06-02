@@ -4,7 +4,17 @@ The repository for common powershell modules/scripts used by the fusion framewor
 
 Modules published to fusion-public package feed.
 
+```
+https://statoil-proview.pkgs.visualstudio.com/5309109e-a734-4064-a84c-fbce45336913/_packaging/Fusion-Public/nuget/v2
+```
+
 ## FusionPS module
+
+> To install the FusionPS module:
+> ```powershell
+> Register-PSRepository -Name Fusion -SourceLocation "https://statoil-proview.pkgs.visualstudio.com/ 5309109e-a734-4064-a84c-fbce45336913/_packaging/Fusion-Public/nuget/v2" -InstallationPolicy Trusted
+> Install-Module FusionPS -Scope CurrentUser
+> ```
 
 A module used in the DevOps pipelines, wrapping commonly used functionalities and standardize tasks.
 

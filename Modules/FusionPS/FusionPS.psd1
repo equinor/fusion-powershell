@@ -12,10 +12,10 @@
 RootModule = 'FusionPS.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.3'
+ModuleVersion = '1.3.3'
 
 # Supported PSEditions
-# CompatiblePSEditions = @()
+CompatiblePSEditions = @('Desktop', 'Core')
 
 # ID used to uniquely identify this module
 GUID = '27b1e459-0681-4ed7-9b0b-3321b0e499f2'
@@ -33,7 +33,7 @@ Copyright = '(c) 2018 Fusion. All rights reserved.'
 Description = 'Main Fusion PS library'
 
 # Minimum version of the Windows PowerShell engine required by this module
-# PowerShellVersion = ''
+PowerShellVersion = '5.1'
 
 # Name of the Windows PowerShell host required by this module
 # PowerShellHostName = ''
@@ -51,7 +51,7 @@ Description = 'Main Fusion PS library'
 # ProcessorArchitecture = ''
 
 # Modules that must be imported into the global environment prior to importing this module
-# RequiredModules = @()
+# RequiredModules = @('Az')
 
 # Assemblies that must be loaded prior to importing this module
 # RequiredAssemblies = @()
@@ -112,7 +112,7 @@ PrivateData = @{
         # ReleaseNotes = ''
 
         # External dependent modules of this module
-        # ExternalModuleDependencies = ''
+        ExternalModuleDependencies = 'Az'
 
     } # End of PSData hashtable
 
