@@ -54,6 +54,7 @@
           "phpVersion": "off",
           "ftpsState": "FtpsOnly",
           "minTlsVersion": "1.2",
+          "http20Enabled": true,
           "webSocketsEnabled": false,
           "appSettings": [
             {
@@ -171,7 +172,8 @@
                 "webSocketsEnabled": false,
                 "phpVersion": "off",
                 "ftpsState": "FtpsOnly",
-                "minTlsVersion": "1.2"
+                "minTlsVersion": "1.2",
+                "http20Enabled": true
               }
             }
           ]

@@ -61,7 +61,8 @@
             "webSocketsEnabled": true,
             "phpVersion": "off",
             "ftpsState": "FtpsOnly",
-            "minTlsVersion": "1.2"
+            "minTlsVersion": "1.2",
+            "http20Enabled": true
           }
         },
         {
