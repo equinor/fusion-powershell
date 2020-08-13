@@ -16,7 +16,7 @@ if ((-not $Force.IsPresent) -and $branch -ne "master") {
     throw "Cannot build on branch other than master. To override, use -Force switch"
 }
 
-switch ($PRoject) {
+switch ($Module) {
     "FusionPS" { $definitionId = 226 }
     default { Write-Host -ForegroundColor Red "Not supported"; return }
 }
