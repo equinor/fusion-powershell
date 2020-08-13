@@ -3,6 +3,38 @@
 $CONFIG_CONTAINER = "config"
 $PARAMS_BLOBPATH = "env-params.json"
 
+
+Class ServiceDeploymentContext {
+	[string]$Environment
+	[string]$ServiceName
+	[string]$PullRequest
+	[bool]$IsProduction
+	[string]$InfraEnv
+	[string]$AzureAdClientId
+}
+
+function Get-FusionServiceDeploymentContext {
+	[OutputType([ServiceDeploymentContext])]
+	param(
+		$ServiceName
+	)
+
+	$envName = $env:Env
+	$prNr = $env:PRNr
+	if ([string]::IsNullOrEmpty($prNr)) { $prNr = $null }
+	$clientId = @("5a842df8-3238-415d-b168-9f16a6a6031b", "97978493-9777-4d48-b38a-67b0b9cd88d2")[$envName -eq "fprd"]
+	
+
+	return New-Object ServiceDeploymentContext -Property @{ 
+		Environment = $envName
+		ServiceName = "pro-s-$($ServiceName.ToLower())-$($envName.ToLower())"
+		PullRequest = $prNr
+		IsProduction = $envName -eq "FPRD"
+		InfraEnv = @("Test", "Prod")[$envName -eq "fprd"]
+		$AzureAdClientId = $clientId
+	}
+}
+
 function Set-EnvironmentParams {
 	<#
 	.SYNOPSIS
@@ -148,4 +180,4 @@ function Get-CurrentPullRequestNumber {
 	return $null
 }
 
-Export-ModuleMember -Function *-EnvironmentParams, Get-CurrentPullRequestNumber
+Export-ModuleMember -Function *-EnvironmentParams, Get-CurrentPullRequestNumber, Get-FusionServiceDeploymentContext

@@ -369,7 +369,7 @@ function New-DefaultServiceSqlDatabaseV2 {
 		
 		 	$SOURCE_DATABASE = Get-ServiceSqlDatabaseName -Environment CI -DatabasePrefix $DatabasePrefixName
 		 	Write-Host "Looking for source database [$SOURCE_DATABASE] on server [$SQL_SERVER_NAME]"
-			 $srcDb = Get-AzSqlDatabase -ResourceGroupName $RESOURCE_GROUP_NAME -ServerName $SQL_SERVER_NAME -DatabaseName $SOURCE_DATABASE  -ErrorAction SilentlyContinue
+			$srcDb = Get-AzSqlDatabase -ResourceGroupName $RESOURCE_GROUP_NAME -ServerName $SQL_SERVER_NAME -DatabaseName $SOURCE_DATABASE  -ErrorAction SilentlyContinue
 			 
 			if ($null -ne $srcDb) {
 				Write-Host "Found it, copying [$SOURCE_DATABASE] to [$DATABASE_NAME] on elastic pool $($pool.ElasticPoolName)..."

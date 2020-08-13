@@ -4,10 +4,17 @@ $AZURE_SQL_RESOURCE_ID = "https://database.windows.net/"
 function Get-FusionAzSqlConnection {
     [OutputType([System.Data.SqlClient.SqlConnection])]
     param(
+        [ValidateSet('Test', 'Prod', $null)]
+		[InfraEnv]$InfraEnv = $null,
         $SqlServerName,
         $DatabaseName
     )
 
+    if (-not [string]::IsNullOrEmpty($InfraEnv)) {
+		if ($InfraEnv -eq 'Prod') { $SqlServerName = "fusion-prod-sqlserver" } 
+		else { $SqlServerName = "fusion-test-sqlserver" }
+    }
+    
     $connectionString = Get-FusionSqlServerConnectionString -SqlServerName $SqlServerName -DatabaseName $DatabaseName
     $accessToken = Get-FusionAzAccessToken -Resource $AZURE_SQL_RESOURCE_ID
 
@@ -65,14 +72,35 @@ function New-FusionAzSqlMigration {
     $SqlConnection.Close()
 }
 
+function Set-FusionAzSqlDatabaseAccess {
+    param(
+        [ValidateSet('Test', 'Prod')]
+		[string]$InfraEnv,
+        $Environment,
+        $DatabaseName
+    )
+
+	$clientId = @("5a842df8-3238-415d-b168-9f16a6a6031b", "97978493-9777-4d48-b38a-67b0b9cd88d2")[$Environment -eq "fprd"]
+    Set-FusionAzSqlServicePrincipalAccess -InfraEnv $InfraEnv -ApplicationId $clientId -DatabaseName $DatabaseName
+}
+
 function Set-FusionAzSqlServicePrincipalAccess {
     param(
+        [ValidateSet('Test', 'Prod', $null)]
+		[string]$InfraEnv = $null,
         $ServicePrincipalName,
+        $ApplicationId,
         $SqlServerName,
         $DatabaseName
     )
     
-    $sqlConnection = Get-FusionAzSqlConnection -SqlServerName $SqlServerName -DatabaseName $DatabaseName
+    $sqlConnection = Get-FusionAzSqlConnection -InfraEnv $InfraEnv -SqlServerName $SqlServerName -DatabaseName $DatabaseName
+
+    if ([string]::IsNullOrEmpty($ApplicationId)) {
+        Write-Host "Resolving ad app for client id $ApplicationId..."
+        $adApp = Get-AzADApplication -ApplicationId $ApplicationId
+        $ServicePrincipalName = $adApp.DisplayName
+    }
 
     Write-Host "Ensuring service principal [$ServicePrincipalName] user on database $DatabaseName..."
 
@@ -85,16 +113,13 @@ function Set-FusionAzSqlServicePrincipalAccess {
       END
 "@
 
+    $sqlConnection.Open()
     $SqlCmd = New-Object System.Data.SqlClient.SqlCommand
     $SqlCmd.CommandText = $sql
     $SqlCmd.Connection  = $sqlConnection    
-    $affectedRows = $SqlCmd.ExecuteNonQuery()
+    $SqlCmd.ExecuteNonQuery() | Out-Null
 
-    if ($affectedRows -gt 0) {
-        Write-Host "User added"
-    } else {
-        Write-Host "User already exists"
-    }
+    Write-Host "Done."
 
     $sqlConnection.Close()
 }
@@ -102,13 +127,16 @@ function Set-FusionAzSqlServicePrincipalAccess {
 function Invoke-FusionAzSqlScript {
     [OutputType([int])]
     param(
+        [ValidateSet('Test', 'Prod', $null)]
+		[string]$InfraEnv = $null,
         $SqlServerName,
         $DatabaseName,
         [string]$SqlCmd
     )
 
-    $sqlConnection = Get-FusionAzSqlConnection -SqlServerName $SqlServerName -DatabaseName $DatabaseName
+    $sqlConnection = Get-FusionAzSqlConnection -InfraEnv $InfraEnv -SqlServerName $SqlServerName -DatabaseName $DatabaseName
 
+    $sqlConnection.Open()
     $SqlCmd = New-Object System.Data.SqlClient.SqlCommand
     $SqlCmd.CommandText = $SqlCmd
     $SqlCmd.Connection  = $sqlConnection    

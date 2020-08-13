@@ -1,4 +1,5 @@
 
+Import-Module Az.KeyVault
 
 function Set-WebAppMSIKeyVaultPermissions {
 	<#
@@ -30,6 +31,61 @@ function Set-WebAppMSIKeyVaultPermissions {
 
 	Write-Host "Adding permissions for $servicePrincipalId, spn=$spn to $KeyVaultName"
 	Set-AzKeyVaultAccessPolicy -VaultName $KeyVaultName -ServicePrincipalName $spn -PermissionsToSecrets get,list,set
+}
+
+function Set-FusionAzEfContextKeyVaultConnectionString {
+	param(
+		[ValidateSet('Test', 'Prod')]
+		$InfraEnv,
+		$Environment,
+		$ContextName,
+		$DatabaseName
+	)
+
+	$DB_SECRET_NAME = "DB-$ContextName"
+	$CONFIG_CONFIG_KEY_PATH = "ConnectionStrings:$ContextName"      ## The connection string will be autoloaded, need to specify where in the config object it should be resolved.
+
+	$connectionString = Get-FusionSqlServerConnectionString -InfraEnv $InfraEnv -DatabaseName $DatabaseName
+
+	## Get key vault for env
+	$vault = Get-FusionAzEnvKeyVault -Environment $Environment
+
+	$existingKey = Get-AzKeyVaultSecret -VaultName $vault.Name -Name $DB_SECRET_NAME -ErrorAction SilentlyContinue
+
+	if ($existingKey.SecretValueText -ne $connectionString) {
+		Write-Host "Setting DB Connection string for context $ContextName to keyvault $($vault.Name)"
+		$secretValue = ConvertTo-SecureString -AsPlainText -Force -String $connectionString
+		Set-AzKeyVaultSecret -VaultName $vault.Name -Name $DB_SECRET_NAME -SecretValue $secretValue -ContentType $CONFIG_CONFIG_KEY_PATH -Tag @{Autoload = "True"}
+	} else {
+		Write-Host "No changes. Skipping update..."
+	}
+}
+
+function Get-FusionAzEnvKeyVault {
+	[OutputType([Microsoft.Azure.Commands.ResourceManager.Cmdlets.SdkModels.PSResource])]
+	param(
+		$Environment,
+		[switch]$UseTags
+	)
+
+	$vaults = Get-AzResource -ResourceType Microsoft.KeyVault/vaults
+	
+	$vault = $null
+
+	# Try look for tags	
+	if ($UseTags.IsPresent) {
+		$fromTags = $vaults | Where-Object { $_.Tags.'fusion-infra-type' -eq "keyvault" -and $_.Tags.'fusion-environment' -eq $Environment }
+		if ($fromTags.Count -gt 1) { throw "Found multiple vaults for tags 'fusion-infra-type' and 'fusion-environment'..." }
+
+		$vault = $fromTags | Select-Object -First 1
+	}
+
+	# Use fallback naming convention
+	if ($null -eq $vault) {
+		$vault = $vaults | Where-Object -Property Name -eq "proview-$Environment-keys" | Select-Object -First 1	
+	}
+
+	return $vault
 }
 
 function Set-EFContextKeyVaultConnectionString {

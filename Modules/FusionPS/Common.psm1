@@ -1,0 +1,5 @@
+
+Enum InfraEnv {
+    Test
+    Prod
+}

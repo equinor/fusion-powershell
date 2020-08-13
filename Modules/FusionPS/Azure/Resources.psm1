@@ -38,9 +38,17 @@ function Get-ServiceSqlDatabaseName {
 
 function Get-FusionSqlServer {
     [OutputType([Microsoft.Azure.Commands.Sql.Server.Model.AzureSqlServerModel])]    
-    param(        
-        $SqlServerName
-    )
+    param(
+		[ValidateSet('Test', 'Prod', $null)]
+		[string]$InfraEnv = $null,
+        $SqlServerName = $null
+	)
+
+	if (-not [string]::IsNullOrEmpty($InfraEnv)) {
+		if ($InfraEnv -eq 'Prod') { $sqlServerName = "fusion-prod-sqlserver" } 
+		else { $sqlServerName = "fusion-test-sqlserver" }
+	}
+
     $dbResource = Get-AzSqlServer | Where-Object -Property ServerName -eq $SqlServerName | Select-Object -First 1
     return $dbResource;    
 }
@@ -48,12 +56,14 @@ function Get-FusionSqlServer {
 function Get-FusionSqlServerConnectionString {
     [OutputType([string])]
     param(
+		[ValidateSet('Test', 'Prod', $null)]
+		[string]$InfraEnv = $null,
         $SqlServerName,
         $DatabaseName,
         $Timeout = 30
     )
 
-    $sqlServer = Get-FusionSqlServer -SqlServerName $SqlServerName
+    $sqlServer = Get-FusionSqlServer -InfraEnv $InfraEnv -SqlServerName $SqlServerName
 
     return "Server=tcp:$($sqlServer.FullyQualifiedDomainName),1433;Initial Catalog=$DatabaseName;Persist Security Info=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=$Timeout;"
 }
