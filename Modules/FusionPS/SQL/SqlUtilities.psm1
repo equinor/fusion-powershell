@@ -5,7 +5,7 @@ function Get-FusionAzSqlConnection {
     [OutputType([System.Data.SqlClient.SqlConnection])]
     param(
         [ValidateSet('Test', 'Prod', $null)]
-		[InfraEnv]$InfraEnv = $null,
+		[string]$InfraEnv = $null,
         $SqlServerName,
         $DatabaseName
     )
