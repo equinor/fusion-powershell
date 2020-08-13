@@ -1,4 +1,5 @@
 
+Import-Module .\Azure\Resources.psm1
 
 function New-ARMTemplateConfigObject {
 	<#
@@ -325,6 +326,76 @@ function New-DefaultWebAppDeployment {
     }
 }
 
+function New-DefaultServiceSqlDatabaseV2 {
+	param(
+		[ValidateSet('Test', 'Prod')]
+		[string]$InfraEnv,
+		[string]$Environment,
+		[string]$DatabasePrefixName,
+		[string]$PullRequest = $null
+	)
+
+	# As we don't have all the resources tagged yet, lets just look for the names.
+	if ($InfraEnv -eq 'Prod') { $sqlServerName = "fusion-prod-sqlserver" } 
+	else { $sqlServerName = "fusion-test-sqlserver" }
+
+	$sqlServer = Get-AzSqlServer -ServerName $sqlServerName
+
+	$RESOURCE_GROUP_NAME = $sqlServer.ResourceGroupName
+	$SQL_SERVER_NAME = $sqlServer.ServerName
+	$DATABASE_NAME = Get-ServiceSqlDatabaseName -Environment $Environment -DatabasePrefix $DatabasePrefixName -PullRequest $PullRequest
+
+	$ePools = Get-AzSqlElasticPool -ServerName $sqlServer.ServerName -ResourceGroupName $sqlServer.ResourceGroupName
+	if ($ePools.Length -gt 1) {
+		$pool = $ePools | Where-Object { $_.Tags.'pool-type' -eq "main" } | select-object -First 1    
+	} else {
+		$pool = $ePools | Select-Object -First 1
+	}
+
+	## Check if database exists
+	$db = Get-AzSqlDatabase -ResourceGroupName $RESOURCE_GROUP_NAME -DatabaseName $DATABASE_NAME -ServerName $SQL_SERVER_NAME -ErrorAction SilentlyContinue
+
+	if ($null -ne $db) {
+		Write-Host "Found existing database [$($db.DatabaseName)] on server [$($db.ServerName)]"
+		Write-Host "Not executing create/copy..."
+	} else {
+
+		function New-Database {
+			Write-Host "Creating new database [$DATABASE_NAME] on server $SQL_SERVER_NAME on elastic pool $($pool.ElasticPoolName)"
+			Write-Host "   Destination: $RESOURCE_GROUP_NAME, Server: $SQL_SERVER_NAME, Database: $DATABASE_NAME"			
+			New-AzSqlDatabase -ResourceGroupName $RESOURCE_GROUP_NAME -ServerName $SQL_SERVER_NAME -DatabaseName $DATABASE_NAME -ElasticPoolName $pool.ElasticPoolName
+		}		
+
+		if ($Environment -eq "pr") {
+		 	Write-Host "Creating new database copy"
+		
+		 	$SOURCE_DATABASE = Get-ServiceSqlDatabaseName -Environment CI -DatabasePrefix $DatabasePrefixName
+		 	Write-Host "Looking for source database [$SOURCE_DATABASE] on server [$SQL_SERVER_NAME]"
+			 $srcDb = Get-AzSqlDatabase -ResourceGroupName $RESOURCE_GROUP_NAME -ServerName $SQL_SERVER_NAME -DatabaseName $SOURCE_DATABASE  -ErrorAction SilentlyContinue
+			 
+			if ($null -ne $srcDb) {
+				Write-Host "Found it, copying [$SOURCE_DATABASE] to [$DATABASE_NAME] on elastic pool $($pool.ElasticPoolName)..."
+
+				New-AzSqlDatabaseCopy `
+					-ResourceGroupName $RESOURCE_GROUP_NAME `
+					-ServerName $SQL_SERVER_NAME `
+					-DatabaseName $SOURCE_DATABASE `
+					-CopyResourceGroupName $RESOURCE_GROUP_NAME `
+					-CopyServerName $SQL_SERVER_NAME `
+					-CopyDatabaseName $DATABASE_NAME `
+					-ElasticPoolName $pool.ElasticPoolName
+			} else {
+				Write-Host "Could not locate any existing to copy, creating new instead..."
+				New-Database
+			}
+		} else {
+			New-Database
+		}
+
+	}
+}
+
+
 function New-DefaultServiceSqlDatabase {
 	<#
 		.SYNOPSIS
@@ -396,4 +467,4 @@ function Get-DeploymentName {
     return "$Name"
 }
 
-Export-ModuleMember -Function *-ARMTemplate*,New-DefaultServiceARMTemplateConfig,New-DefaultWebAppDeployment,Get-DefaultServiceARMTemplateConfig,New-DefaultServiceSqlDatabase
+Export-ModuleMember -Function *-ARMTemplate*,New-DefaultServiceARMTemplateConfig,New-DefaultWebAppDeployment,Get-DefaultServiceARMTemplateConfig,New-DefaultServiceSqlDatabase,New-DefaultServiceSqlDatabaseV2

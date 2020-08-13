@@ -21,7 +21,7 @@ Write-Host "Publishing Fusion Service Deployment"
 Publish-Module -Repository BuildTaskModuleRepo -Path (Join-Path $PSScriptRoot $Name)
 
 Write-Host "Installing module"
-Install-Module -Repository BuildTaskModuleRepo FusionPS -Scope CurrentUser -Force
+Install-Module -Repository BuildTaskModuleRepo FusionPS -Scope CurrentUser -Force -Verbose
 
 Write-Host "Removing temp repo"
 Unregister-PSRepository -Name BuildTaskModuleRepo
