@@ -46,7 +46,7 @@ function Set-FusionAzEfContextKeyVaultConnectionString {
 	$CONFIG_CONFIG_KEY_PATH = "ConnectionStrings:$ContextName"      ## The connection string will be autoloaded, need to specify where in the config object it should be resolved.
 
 	# We must create the database name from the prefix, as we do not want any pr postfix in the connection string.
-	$databaseName = Get-ServiceSqlDatabaseName -Environment $context.Environment -DatabasePrefix $DatabasePrefixName
+	$databaseName = Get-ServiceSqlDatabaseName -Environment $Environment -DatabasePrefix $DatabasePrefixName
 	$connectionString = Get-FusionSqlServerConnectionString -InfraEnv $InfraEnv -DatabaseName $databaseName
 
 	## Get key vault for env
