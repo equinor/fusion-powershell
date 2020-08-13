@@ -98,7 +98,7 @@ function Set-FusionAzSqlServicePrincipalAccess {
     
     $sqlConnection = Get-FusionAzSqlConnection -InfraEnv $InfraEnv -SqlServerName $SqlServerName -DatabaseName $DatabaseName
 
-    if ([string]::IsNullOrEmpty($ApplicationId)) {
+    if (-not [string]::IsNullOrEmpty($ApplicationId)) {
         Write-Host "Resolving ad app for client id $ApplicationId..."
         $adApp = Get-AzADApplication -ApplicationId $ApplicationId
         $ServicePrincipalName = $adApp.DisplayName

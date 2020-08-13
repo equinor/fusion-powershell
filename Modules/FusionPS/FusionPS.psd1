@@ -12,7 +12,7 @@
 RootModule = 'FusionPS.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.3.11'
+ModuleVersion = '1.3.12'
 
 # Supported PSEditions
 CompatiblePSEditions = @('Desktop', 'Core')
