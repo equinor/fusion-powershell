@@ -31,7 +31,7 @@ function Get-FusionServiceDeploymentContext {
 		PullRequest = $prNr
 		IsProduction = $envName -eq "FPRD"
 		InfraEnv = @("Test", "Prod")[$envName -eq "fprd"]
-		$AzureAdClientId = $clientId
+		AzureAdClientId = $clientId
 	}
 }
 
