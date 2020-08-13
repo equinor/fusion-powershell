@@ -12,7 +12,7 @@
 RootModule = 'FusionPS.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.3.5'
+ModuleVersion = '1.3.6'
 
 # Supported PSEditions
 CompatiblePSEditions = @('Desktop', 'Core')
@@ -51,7 +51,7 @@ PowerShellVersion = '5.1'
 # ProcessorArchitecture = ''
 
 # Modules that must be imported into the global environment prior to importing this module
-# RequiredModules = @('Az')
+#RequiredModules = @('Az')
 
 # Assemblies that must be loaded prior to importing this module
 # RequiredAssemblies = @()
@@ -112,7 +112,8 @@ PrivateData = @{
         # ReleaseNotes = ''
 
         # External dependent modules of this module
-        ExternalModuleDependencies = 'Az'
+        # ExternalModuleDependencies = 'Az'
+        ExternalModuleDependencies = @('Az')
 
     } # End of PSData hashtable
 

@@ -1,9 +1,7 @@
-Import-Module $PSScriptRoot/../Azure/AzGeneral.psm1
-Import-Module $PSScriptRoot/../Azure/Resources.psm1
 
 $AZURE_SQL_RESOURCE_ID = "https://database.windows.net/"
 
-function Get-SqlConnection {
+function Get-FusionAzSqlConnection {
     [OutputType([System.Data.SqlClient.SqlConnection])]
     param(
         $SqlServerName,
@@ -34,7 +32,7 @@ function New-FusionAzSqlMigration {
     $content = [IO.File]::ReadAllText($SqlFile)
     $batches = $content -split "[\r\n]*GO[\r\n]*"
 
-    $SqlConnection = Get-SqlConnection -SqlServerName $SqlServerName -DatabaseName $DatabaseName
+    $SqlConnection = Get-FusionAzSqlConnection -SqlServerName $SqlServerName -DatabaseName $DatabaseName
 
     # Is ok to print the sql connection, as there is no credentials used.
     Write-Host "Executing migration on sql connection: "
@@ -74,7 +72,7 @@ function Set-FusionAzSqlServicePrincipalAccess {
         $DatabaseName
     )
     
-    $sqlConnection = Get-SqlConnection -SqlServerName $SqlServerName -DatabaseName $DatabaseName
+    $sqlConnection = Get-FusionAzSqlConnection -SqlServerName $SqlServerName -DatabaseName $DatabaseName
 
     Write-Host "Ensuring service principal [$ServicePrincipalName] user on database $DatabaseName..."
 
@@ -109,7 +107,7 @@ function Invoke-FusionAzSqlScript {
         [string]$SqlCmd
     )
 
-    $sqlConnection = Get-SqlConnection -SqlServerName $SqlServerName -DatabaseName $DatabaseName
+    $sqlConnection = Get-FusionAzSqlConnection -SqlServerName $SqlServerName -DatabaseName $DatabaseName
 
     $SqlCmd = New-Object System.Data.SqlClient.SqlCommand
     $SqlCmd.CommandText = $SqlCmd

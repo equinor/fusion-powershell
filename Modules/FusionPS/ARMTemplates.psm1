@@ -1,6 +1,4 @@
 
-Import-Module .\Azure\Resources.psm1
-
 function New-ARMTemplateConfigObject {
 	<#
 		.SYNOPSIS

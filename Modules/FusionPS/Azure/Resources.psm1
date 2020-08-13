@@ -1,3 +1,6 @@
+
+Import-Module Az.Sql
+
 function Get-ServiceSqlDatabaseName {
 	<#
 	.SYNOPSIS
