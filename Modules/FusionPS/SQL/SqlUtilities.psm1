@@ -28,6 +28,8 @@ function Get-FusionAzSqlConnection {
 function New-FusionAzSqlMigration {
     param(
         $SqlFile,
+        [ValidateSet('Test', 'Prod')]
+		[string]$InfraEnv = $null,
         $SqlServerName,
         $DatabaseName
     )
@@ -39,7 +41,7 @@ function New-FusionAzSqlMigration {
     $content = [IO.File]::ReadAllText($SqlFile)
     $batches = $content -split "[\r\n]*GO[\r\n]*"
 
-    $SqlConnection = Get-FusionAzSqlConnection -SqlServerName $SqlServerName -DatabaseName $DatabaseName
+    $SqlConnection = Get-FusionAzSqlConnection -InfraEnv $InfraEnv -SqlServerName $SqlServerName -DatabaseName $DatabaseName
 
     # Is ok to print the sql connection, as there is no credentials used.
     Write-Host "Executing migration on sql connection: "

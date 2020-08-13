@@ -180,4 +180,52 @@ function Get-CurrentPullRequestNumber {
 	return $null
 }
 
-Export-ModuleMember -Function *-EnvironmentParams, Get-CurrentPullRequestNumber, Get-FusionServiceDeploymentContext
+function Set-FusionPipelineDatabaseContext {
+	param(
+		$DatabaseName
+	)
+
+	$infraEnv = Get-FusionInfraEnv
+	$sqlServer = Get-FusionSqlServer -InfraEnv $infraEnv
+
+	Write-Host "Setting pipeline variables [databaseName], [infraEnv] and [sqlServerName]"
+	Write-Host "##vso[task.setvariable variable=sqlDatabaseName]$DatabaseName"
+	Write-Host "##vso[task.setvariable variable=sqlServerName]$($sqlServer.ServerName)"
+	Write-Host "##vso[task.setvariable variable=infraEnv]$infraEnv"
+}
+
+function Get-FusionInfraEnv {
+	[OutputType([string])]
+	param()
+
+	$envName = $env:Env
+	if ([string]::IsNullOrEmpty($envName)) { 
+		$envName = $env:Environment 
+	}
+
+	return @("Test", "Prod")[$envName -eq "fprd"]
+}
+function Get-FusionPipelineDatabaseContext {
+	[OutputType([FusionPipelineDatabaseContext])]
+	param()
+
+	$context = New-Object FusionPipelineDatabaseContext -Property @{ 
+		SqlServerName = $env:SQLSERVERNAME
+		DatabaseName = $env:SQLDATABASENAME
+		InfraEnv = $env:InfraEnv
+	}
+
+	if ([string]::IsNullOrEmpty($context.SqlServerName) -or [string]::IsNullOrEmpty($context.DatabaseName)) {
+		throw "Could not locate required pipeline variables"
+	}
+
+	return $context
+}
+
+class FusionPipelineDatabaseContext {
+	[string]$SqlServerName
+	[string]$DatabaseName
+	[string]$InfraEnv
+}
+
+Export-ModuleMember -Function *
