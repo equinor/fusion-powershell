@@ -56,6 +56,8 @@ function New-FusionAzSqlMigration {
 
     foreach($batch in $batches)
     {
+        Write-Host $batch
+
         if ($batch.Trim() -ne "") {
             $SqlCmd = New-Object System.Data.SqlClient.SqlCommand
             $SqlCmd.CommandText = $batch
@@ -65,11 +67,13 @@ function New-FusionAzSqlMigration {
             $rowsAffected = $SqlCmd.ExecuteNonQuery()
 
             if ($rowsAffected -gt 0) {
-                Write-Host $batch
-            } else {
-                Write-Host "`tBatch -> No rows affected.."
+                Write-Host "$rowsAffected rows affected"
             }
         }
+
+        Write-Host "----------------------------------------"
+        Write-Host ""
+
     }
     Write-Host "Done. Commiting..."
     $transaction.Commit()
