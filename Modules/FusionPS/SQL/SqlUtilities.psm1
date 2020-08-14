@@ -56,9 +56,10 @@ function New-FusionAzSqlMigration {
 
     foreach($batch in $batches)
     {
-        Write-Host $batch
-
         if ($batch.Trim() -ne "") {
+            Write-Host ""
+            Write-Host $batch
+
             $SqlCmd = New-Object System.Data.SqlClient.SqlCommand
             $SqlCmd.CommandText = $batch
             $SqlCmd.CommandTimeout = 600
@@ -69,11 +70,10 @@ function New-FusionAzSqlMigration {
             if ($rowsAffected -gt 0) {
                 Write-Host "$rowsAffected rows affected"
             }
+
+            Write-Host "----------------------------------------"
+            Write-Host ""
         }
-
-        Write-Host "----------------------------------------"
-        Write-Host ""
-
     }
     Write-Host "Done. Commiting..."
     $transaction.Commit()
@@ -116,9 +116,9 @@ function Set-FusionAzSqlServicePrincipalAccess {
       if not exists(select * from sys.sysusers where name = '$ServicePrincipalName') 
       BEGIN
         CREATE USER [$ServicePrincipalName] FROM EXTERNAL PROVIDER;
-        ALTER ROLE db_datareader ADD MEMBER [$ServicePrincipalName];
-        ALTER ROLE db_datawriter ADD MEMBER [$ServicePrincipalName];
       END
+      ALTER ROLE db_datareader ADD MEMBER [$ServicePrincipalName];
+      ALTER ROLE db_datawriter ADD MEMBER [$ServicePrincipalName];
 "@
 
     $sqlConnection.Open()
