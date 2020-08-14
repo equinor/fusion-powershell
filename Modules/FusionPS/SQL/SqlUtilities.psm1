@@ -7,7 +7,8 @@ function Get-FusionAzSqlConnection {
         [ValidateSet('Test', 'Prod', $null)]
 		[string]$InfraEnv = $null,
         $SqlServerName,
-        $DatabaseName
+        $DatabaseName,
+        $Timeout = 30
     )
 
     if (-not [string]::IsNullOrEmpty($InfraEnv)) {
@@ -15,7 +16,7 @@ function Get-FusionAzSqlConnection {
 		else { $SqlServerName = "fusion-test-sqlserver" }
     }
     
-    $connectionString = Get-FusionSqlServerConnectionString -SqlServerName $SqlServerName -DatabaseName $DatabaseName
+    $connectionString = Get-FusionSqlServerConnectionString -SqlServerName $SqlServerName -DatabaseName $DatabaseName -Timeout $Timeout
     $accessToken = Get-FusionAzAccessToken -Resource $AZURE_SQL_RESOURCE_ID
 
     $SqlConnection = new-object System.Data.SqlClient.SqlConnection
@@ -41,14 +42,14 @@ function New-FusionAzSqlMigration {
     $content = [IO.File]::ReadAllText($SqlFile)
     $batches = $content -split "[\r\n]*GO[\r\n]*"
 
-    $SqlConnection = Get-FusionAzSqlConnection -InfraEnv $InfraEnv -SqlServerName $SqlServerName -DatabaseName $DatabaseName
+    $SqlConnection = Get-FusionAzSqlConnection -InfraEnv $InfraEnv -SqlServerName $SqlServerName -DatabaseName $DatabaseName -Timeout 200
 
     # Is ok to print the sql connection, as there is no credentials used.
     Write-Host "Executing migration on sql connection: "
     Write-Host $SqlConnection.ConnectionString  
 
     $SqlConnection.Open()
-
+    
     Write-Host "$($batches.Count) blocks to execute"
     Write-Host "Starting transaction..."    
     $transaction = $SqlConnection.BeginTransaction("EF Migration");
@@ -58,6 +59,7 @@ function New-FusionAzSqlMigration {
         if ($batch.Trim() -ne "") {
             $SqlCmd = New-Object System.Data.SqlClient.SqlCommand
             $SqlCmd.CommandText = $batch
+            $SqlCmd.CommandTimeout = 600
             $SqlCmd.Connection = $SqlConnection
             $SqlCmd.Transaction = $transaction
             $rowsAffected = $SqlCmd.ExecuteNonQuery()
