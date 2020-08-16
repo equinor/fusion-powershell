@@ -95,30 +95,108 @@ function Set-FusionAzSqlDatabaseAccess {
 function Set-FusionAzSqlServicePrincipalAccess {
     param(
         [ValidateSet('Test', 'Prod', $null)]
-		[string]$InfraEnv = $null,
-        $ServicePrincipalName,
+        [string]$InfraEnv = $null,
+        [Parameter(Mandatory=$true)]
         $ApplicationId,
         $SqlServerName,
+        [Parameter(Mandatory=$true)]
         $DatabaseName
     )
     
     $sqlConnection = Get-FusionAzSqlConnection -InfraEnv $InfraEnv -SqlServerName $SqlServerName -DatabaseName $DatabaseName
 
-    if (-not [string]::IsNullOrEmpty($ApplicationId)) {
-        Write-Host "Resolving ad app for client id $ApplicationId..."
-        $adApp = Get-AzADApplication -ApplicationId $ApplicationId
-        $ServicePrincipalName = $adApp.DisplayName
+    Write-Host "Resolving ad app for client id $ApplicationId..."
+    $adApp = Get-AzADApplication -ApplicationId $ApplicationId
+    $ServicePrincipalName = $adApp.DisplayName
+
+    function ConvertTo-Sid {
+        param (
+            [string]$appId
+        )
+        [guid]$guid = [System.Guid]::Parse($appId)
+        foreach ($byte in $guid.ToByteArray()) {
+            $byteGuid += [System.String]::Format("{0:X2}", $byte)
+        }
+        return "0x" + $byteGuid
     }
+
+    $SID = ConvertTo-Sid -appId $clientId
+    $sql = ""
 
     Write-Host "Ensuring service principal [$ServicePrincipalName] user on database $DatabaseName..."
 
     $sql = @"
       if not exists(select * from sys.sysusers where name = '$ServicePrincipalName') 
       BEGIN
-        CREATE USER [$ServicePrincipalName] FROM EXTERNAL PROVIDER;
+        CREATE USER [$ServicePrincipalName] WITH DEFAULT_SCHEMA=[dbo], SID = $SID, TYPE = E;
       END
       ALTER ROLE db_datareader ADD MEMBER [$ServicePrincipalName];
       ALTER ROLE db_datawriter ADD MEMBER [$ServicePrincipalName];
+"@
+
+    $sqlConnection.Open()
+    $SqlCmd = New-Object System.Data.SqlClient.SqlCommand
+    $SqlCmd.CommandText = $sql
+    $SqlCmd.Connection  = $sqlConnection    
+    $SqlCmd.ExecuteNonQuery() | Out-Null
+
+    Write-Host "Done."
+
+    $sqlConnection.Close()
+}
+
+function Set-FusionAzSqlUserAccess {
+    param(
+        [ValidateSet('Test', 'Prod', $null)]
+        [string]$InfraEnv = $null,
+        [string]$ObjectId,
+        [string]$Mail,
+        [Parameter(Mandatory=$true)]
+        $DatabaseName
+    )
+    
+    $sqlConnection = Get-FusionAzSqlConnection -InfraEnv $InfraEnv -SqlServerName $SqlServerName -DatabaseName $DatabaseName
+
+    if ([string]::IsNullOrEmpty($ObjectId) -and [string]::IsNullOrEmpty($Mail)) {
+        throw "Either mail or object id has to be used"
+    }
+
+    $user = $null
+
+    if (-not [string]::IsNullOrEmpty($Mail)) {
+        Write-Host "Resolving user by mail [$Mail]"
+        $user = Get-AzADUser -Mail $Mail
+        if ($null -eq $user) {
+            throw "Could not locate user"
+        }
+    } else {
+        Write-Host "Resolving user by object id [$ObjectId]"
+        $user = Get-AzADUser -ObjectId $ObjectId
+    }
+
+    function ConvertTo-Sid {
+        param (
+            [string]$objectId
+        )
+        [guid]$guid = [System.Guid]::Parse($objectId)
+        foreach ($byte in $guid.ToByteArray()) {
+            $byteGuid += [System.String]::Format("{0:X2}", $byte)
+        }
+        return "0x" + $byteGuid
+    }
+
+    $SID = ConvertTo-Sid -objectId $user.Id
+
+    $username = $user.UserPrincipalName
+    Write-Host "Ensuring user [$($user.DisplayName) ($username)] user on database $DatabaseName..."
+
+    $sql = @"
+      if not exists(select * from sys.sysusers where name = '$username') 
+      BEGIN
+        CREATE USER [$username] WITH DEFAULT_SCHEMA=[dbo], SID = $SID, TYPE = E;
+      END
+      ALTER ROLE db_datareader ADD MEMBER [$username];
+      ALTER ROLE db_datawriter ADD MEMBER [$username];
 "@
 
     $sqlConnection.Open()
