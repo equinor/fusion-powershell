@@ -40,7 +40,7 @@ function New-FusionAzSqlMigration {
     }
 
     $content = [IO.File]::ReadAllText($SqlFile)
-    $batches = $content -split "[\r\n]*GO[\r\n]*"
+    $batches = $content -split "[\r\n]+\bGO\b[\r\n]+"
 
     $SqlConnection = Get-FusionAzSqlConnection -InfraEnv $InfraEnv -SqlServerName $SqlServerName -DatabaseName $DatabaseName -Timeout 200
 
@@ -54,10 +54,13 @@ function New-FusionAzSqlMigration {
     Write-Host "Starting transaction..."    
     $transaction = $SqlConnection.BeginTransaction("EF Migration");
 
+    $index = 0
     foreach($batch in $batches)
     {
+        $index++
+
         if ($batch.Trim() -ne "") {
-            Write-Host ""
+            Write-Host "-- Statement $index"
             Write-Host $batch
 
             $SqlCmd = New-Object System.Data.SqlClient.SqlCommand
@@ -71,6 +74,7 @@ function New-FusionAzSqlMigration {
                 Write-Host "$rowsAffected rows affected"
             }
 
+            Write-Host ""
             Write-Host "----------------------------------------"
             Write-Host ""
         }
@@ -121,7 +125,6 @@ function Set-FusionAzSqlServicePrincipalAccess {
     }
 
     $SID = ConvertTo-Sid -appId $clientId
-    $sql = ""
 
     Write-Host "Ensuring service principal [$ServicePrincipalName] user on database $DatabaseName..."
 
@@ -217,20 +220,75 @@ function Invoke-FusionAzSqlScript {
 		[string]$InfraEnv = $null,
         $SqlServerName,
         $DatabaseName,
-        [string]$SqlCmd
+        [string]$SqlCmd,
+        [string]$SqlFile
     )
 
     $sqlConnection = Get-FusionAzSqlConnection -InfraEnv $InfraEnv -SqlServerName $SqlServerName -DatabaseName $DatabaseName
 
+    if (-not [string]::IsNullOrEmpty($SqlFile)) {
+        if (Test-Path -Path $SqlFile) {
+            $SqlCmd = [System.IO.File]::ReadAllText($SqlFile)
+        } else {
+            throw "Could not locate sql file @ $SqlFile"
+        }
+    }
+
+    if ([string]::IsNullOrEmpty($SqlCmd)) {
+        throw "Must specify sql to execute"
+    }
+
     $sqlConnection.Open()
-    $SqlCmd = New-Object System.Data.SqlClient.SqlCommand
-    $SqlCmd.CommandText = $SqlCmd
-    $SqlCmd.Connection  = $sqlConnection    
-    $affectedRows = $SqlCmd.ExecuteNonQuery()
+    $sqlcommand = New-Object System.Data.SqlClient.SqlCommand
+    $sqlcommand.CommandText = $SqlCmd
+    $sqlcommand.Connection  = $sqlConnection    
+    $affectedRows = $sqlcommand.ExecuteNonQuery()
 
     $sqlConnection.Close()
 
     return $affectedRows
 }
+
+function Invoke-FisionAzSqlSelectScript {
+    [OutputType('System.Data.DataTable')]
+    param(
+        [ValidateSet('Test', 'Prod', $null)]
+		[string]$InfraEnv = $null,
+        $SqlServerName,
+        $DatabaseName,
+        [string]$Query,
+        [string]$SqlFile
+    )
+
+    $sqlConnection = Get-FusionAzSqlConnection -InfraEnv $InfraEnv -SqlServerName $SqlServerName -DatabaseName $DatabaseName
+
+    if (-not [string]::IsNullOrEmpty($SqlFile)) {
+        if (Test-Path -Path $SqlFile) {
+            $Query = [System.IO.File]::ReadAllText($SqlFile)
+        } else {
+            throw "Could not locate sql file @ $SqlFile"
+        }
+    }
+
+    if ([string]::IsNullOrEmpty($Query)) {
+        throw "Must specify sql query to execute (-Query)"
+    }
+
+    $sqlConnection.Open()
+
+    $sqlCmd = New-Object System.Data.SqlClient.SqlCommand
+    $sqlCmd.Connection = $sqlConnection
+    $sqlCmd.CommandText = $Query
+
+    $dataTable = New-Object System.Data.DataTable
+    $sqlAdapter = New-Object System.Data.SqlClient.SqlDataAdapter
+    $sqlAdapter.SelectCommand = $sqlCmd
+    $rows = $sqlAdapter.Fill($dataTable)
+    $sqlConnection.Close()
+
+    Write-Verbose "$rows Rows selected"
+    return $dataTable
+}
+
 
 Export-ModuleMember -Function *

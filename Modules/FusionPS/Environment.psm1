@@ -66,7 +66,7 @@ function Set-EnvironmentParams {
 		CertThumbprint = @{ ConfigPath = "Config:CertThumbprint"; Value = $paramsFile.certThumbprint }
 		Environment = @{ ConfigPath = "Config:Environment"; Value = $Environment }
 		AppInsights = @{ ConfigPath = "ApplicationInsights:InstrumentationKey"; Value = $ai.Properties.InstrumentationKey }
-		TenantId = @{ ConfigPath = "AzureAd:TenantId"; Value = $ai.Properties.TenantId }
+		TenantId = @{ ConfigPath = "AzureAd:TenantId"; Value = "3aa4a235-b6e2-48d5-9195-7fcf05b459b0" }
 		ClientId = @{ ConfigPath = "AzureAd:ClientId"; Value = $paramsFile.clientId }
 		AppProxyResource = @{ ConfigPath = "AzureAd:ApplicationProxy:Resource"; Value = $paramsFile.onPremRresource }
 		AppSettings = @{}

@@ -358,10 +358,11 @@ function New-DefaultServiceSqlDatabaseV2 {
 		Write-Host "Not executing create/copy..."
 	} else {
 
+		$tags = @{ "fusion-env" = $Environment; "fusion-infra-env" = $InfraEnv; "fusion-component-type" = "db" }
 		function New-Database {
 			Write-Host "Creating new database [$DATABASE_NAME] on server $SQL_SERVER_NAME on elastic pool $($pool.ElasticPoolName)"
 			Write-Host "   Destination: $RESOURCE_GROUP_NAME, Server: $SQL_SERVER_NAME, Database: $DATABASE_NAME"			
-			New-AzSqlDatabase -ResourceGroupName $RESOURCE_GROUP_NAME -ServerName $SQL_SERVER_NAME -DatabaseName $DATABASE_NAME -ElasticPoolName $pool.ElasticPoolName
+			New-AzSqlDatabase -ResourceGroupName $RESOURCE_GROUP_NAME -ServerName $SQL_SERVER_NAME -DatabaseName $DATABASE_NAME -ElasticPoolName $pool.ElasticPoolName -Tags $tags
 		}		
 
 		if ($Environment -eq "pr") {
@@ -381,7 +382,8 @@ function New-DefaultServiceSqlDatabaseV2 {
 					-CopyResourceGroupName $RESOURCE_GROUP_NAME `
 					-CopyServerName $SQL_SERVER_NAME `
 					-CopyDatabaseName $DATABASE_NAME `
-					-ElasticPoolName $pool.ElasticPoolName
+					-ElasticPoolName $pool.ElasticPoolName `
+					-Tags ($tags + @{ "fusion-pr" = $PullRequest })
 			} else {
 				Write-Host "Could not locate any existing to copy, creating new instead..."
 				New-Database
@@ -389,6 +391,9 @@ function New-DefaultServiceSqlDatabaseV2 {
 		} else {
 			New-Database
 		}
+
+		## Add tags
+
 
 	}
 }

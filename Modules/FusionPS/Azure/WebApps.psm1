@@ -21,8 +21,10 @@ function Set-FusionAzWebAppSettings {
     }
 
     $hash = @{}
-    ForEach ($kvp in $webApp.SiteConfig.AppSettings) {
-        $hash[$kvp.Name] = $kvp.Value
+    if (-not $Replace.IsPresent) {
+        ForEach ($kvp in $webApp.SiteConfig.AppSettings) {
+            $hash[$kvp.Name] = $kvp.Value
+        }
     }
 
     Foreach ($key in $AppSettings.Keys) {
@@ -30,9 +32,9 @@ function Set-FusionAzWebAppSettings {
     }
 
     if ($isSlot -eq $false) {
-        Set-AzWebApp -Name $serviceName -AppSettings $hash -ResourceGroupName $resourceGroup | Out-Null
+        Set-AzWebApp -Name $webAppResource.Name -AppSettings $hash -ResourceGroupName $webAppResource.ResourceGroupName | Out-Null
     } else {
-        Set-AzWebAppSlot -Name $serviceName -Slot $pullRequest -AppSettings $hash -ResourceGroupName $resourceGroup | Out-Null
+        Set-AzWebAppSlot -Name $webAppResource.Name -Slot $Slot -AppSettings $hash -ResourceGroupName $webAppResource.ResourceGroupName | Out-Null
     }
 
     return $hash

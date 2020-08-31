@@ -42,6 +42,11 @@
       "apiVersion": "2015-08-01",
       "name": "[concat(variables('site_portal_name'), '/', variables('slot_name'))]",
       "type": "Microsoft.Web/sites/slots",
+      "tags": {
+            "fusion-pr": "[variables('slot_name')]",
+            "fusion-env": "[parameters('env')]",
+            "fusion-component-type": "api-app"
+      },
       "location": "[resourceGroup().location]",
       "dependsOn": [
       ],
@@ -55,7 +60,7 @@
           "type": "config",
           "dependsOn": [
             "[resourceId('Microsoft.Web/Sites/Slots', variables('site_portal_name'), variables('slot_name'))]"
-          ],
+          ],          
           "properties": {
             "alwaysOn": true,
             "webSocketsEnabled": true,

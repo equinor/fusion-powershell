@@ -64,7 +64,7 @@ function Set-FusionAzEfContextKeyVaultConnectionString {
 }
 
 function Get-FusionAzEnvKeyVault {
-	[OutputType([Microsoft.Azure.Commands.ResourceManager.Cmdlets.SdkModels.PSResource])]
+	[OutputType('Microsoft.Azure.Commands.ResourceManager.Cmdlets.SdkModels.PSResource')]
 	param(
 		$Environment,
 		[switch]$UseTags

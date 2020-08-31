@@ -48,6 +48,11 @@
       "properties": {
         "httpsOnly": true
       },
+      "tags": {
+        "fusion-pr": "[variables('slot_name')]",
+        "fusion-env": "[parameters('env')]",
+        "fusion-component-type": "api-app"
+      },
       "resources": [
         {
           "apiVersion": "2018-02-01",
