@@ -18,9 +18,23 @@ https://statoil-proview.pkgs.visualstudio.com/5309109e-a734-4064-a84c-fbce453369
 
 A module used in the DevOps pipelines, wrapping commonly used functionalities and standardize tasks.
 
-- Deploy pre-configured web apps / slotts
+- Deploy pre-configured web apps / slots
 - Duplicate databases for temp environments
 - Generalized environment configuration on blob storage
 - Integration testing utils
 - Key vault utils
 
+
+# Development
+
+To test module locally:
+
+```powershell
+PS > Import-Module "[PATH-TO-REPO]\Modules\FusionPS"
+```
+
+To reload the module:
+```powershell
+PS > Remove-Module FusionPS
+PS > Import-Module "[PATH-TO-REPO]\Modules\FusionPS"
+```

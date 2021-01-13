@@ -249,7 +249,7 @@ function Invoke-FusionAzSqlScript {
     return $affectedRows
 }
 
-function Invoke-FisionAzSqlSelectScript {
+function Invoke-FusionAzSqlSelectScript {
     [OutputType('System.Data.DataTable')]
     param(
         [ValidateSet('Test', 'Prod', $null)]
